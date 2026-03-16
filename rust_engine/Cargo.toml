@@ -1,0 +1,27 @@
+[package]
+name = "cupp_engine"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance Rust engine for CUPP v2 password generation"
+license = "MIT"
+
+[lib]
+name = "cupp_engine"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21", features = ["extension-module"] }
+rayon = "1.10"
+hashbrown = "0.14"
+serde = { version = "1", features = ["derive"] }
+itertools = "0.13"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 1

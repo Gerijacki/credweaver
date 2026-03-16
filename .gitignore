@@ -1,0 +1,82 @@
+# Claude Code
+CLAUDE.md
+status
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
+# Mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# Rust / Cargo
+rust_engine/target/
+*.rs.bk
+
+# maturin build artifacts
+*.so
+*.pyd
+cupp_engine*.so
+cupp_engine*.pyd
+cupp_v2*.egg-info/
+
+# Output files
+output/
+*.txt.gz
+wordlist*.txt
+enhanced*.txt
+mutated*.txt
+
+# Secrets / credentials
+.env
+.env.*
+*.pem
+*.key
+secrets.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Kubernetes secrets (never commit real secrets)
+k8s/secret*.yaml
+k8s/*-secret.yaml

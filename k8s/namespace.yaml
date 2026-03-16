@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cupp-v2
+  labels:
+    app: cupp-v2
+    environment: production

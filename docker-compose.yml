@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  cupp-dev:
+    build:
+      context: .
+      target: builder
+    image: cupp-v2-dev:latest
+    volumes:
+      - .:/build
+      - cargo-cache:/root/.cargo/registry
+      - rust-target:/build/target
+    working_dir: /build
+    environment:
+      - PATH=/root/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+      - RUST_LOG=info
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash
+
+  cupp-run:
+    build:
+      context: .
+      target: runtime
+    image: cupp-v2:latest
+    volumes:
+      - ./profiles:/home/cupp/profiles:ro
+      - ./output:/output
+    command: ["generate", "--profile", "/home/cupp/profiles/example_target.yaml", "--output", "/output/wordlist.txt"]
+
+  cupp-test:
+    build:
+      context: .
+      target: builder
+    image: cupp-v2-dev:latest
+    volumes:
+      - .:/build
+      - cargo-cache:/root/.cargo/registry
+      - rust-target:/build/target
+    working_dir: /build
+    environment:
+      - PATH=/root/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+    command: >
+      sh -c "maturin develop --release &&
+             pip install pytest pytest-cov &&
+             python3 -m pytest tests/unit/ tests/integration/ -v --tb=short"
+
+volumes:
+  cargo-cache:
+  rust-target:

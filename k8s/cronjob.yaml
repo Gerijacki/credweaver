@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cupp-scheduled
+  namespace: cupp-v2
+  labels:
+    app: cupp-v2
+    component: scheduled-generator
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: cupp-v2
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+            - name: cupp
+              image: cupp-v2:latest
+              args:
+                - "generate"
+                - "--profile"
+                - "/profiles/target.yaml"
+                - "--config"
+                - "/config/cupp.yaml"
+                - "--output"
+                - "/output/wordlist-$(date +%Y%m%d).txt"
+                - "--preset"
+                - "default"
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "2"
+              volumeMounts:
+                - name: profiles
+                  mountPath: /profiles
+                  readOnly: true
+                - name: output
+                  mountPath: /output
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+          volumes:
+            - name: profiles
+              configMap:
+                name: cupp-profiles
+            - name: output
+              persistentVolumeClaim:
+                claimName: cupp-output-pvc
+            - name: config
+              configMap:
+                name: cupp-config

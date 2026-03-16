@@ -1,0 +1,20 @@
+name: "john"
+surname: "doe"
+nickname: "johnny"
+birthdate:
+  day: 15
+  month: 6
+  year: 1990
+partner_name: "jane"
+partner_nickname: "janey"
+partner_birthdate:
+  day: 3
+  month: 11
+  year: 1992
+child_name: "emma"
+pet_name: "rex"
+company: "acme"
+phone: "555-1234"
+keywords:
+  - "security"
+  - "hacker"

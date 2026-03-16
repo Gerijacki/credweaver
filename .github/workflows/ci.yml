@@ -1,0 +1,330 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  PYTHONDONTWRITEBYTECODE: 1
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install lint deps
+        run: pip install ruff mypy pydantic pyyaml typer rich
+
+      - name: Ruff lint
+        run: ruff check cupp/ tests/
+
+      - name: Ruff format check
+        run: ruff format --check cupp/ tests/
+
+      - name: mypy
+        run: mypy cupp/ --ignore-missing-imports
+
+  test-python:
+    name: Python Tests (${{ matrix.os }} / py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust_engine/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: rust_engine/target
+          key: ${{ runner.os }}-rust-target-${{ hashFiles('rust_engine/src/**/*.rs', 'rust_engine/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-rust-target-
+
+      - name: Install Python deps
+        run: pip install maturin pydantic pyyaml typer rich pytest pytest-cov
+
+      - name: Build Rust engine
+        run: maturin develop --release
+
+      - name: Run tests
+        run: python -m pytest tests/unit/ tests/integration/ -v --tb=short --cov=cupp --cov-report=xml
+
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+          fail_ci_if_error: false
+
+  test-rust:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust_engine/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('rust_engine/Cargo.lock') }}
+
+      - name: Rustfmt check
+        run: cargo fmt --manifest-path rust_engine/Cargo.toml -- --check
+
+      - name: Clippy
+        run: cargo clippy --manifest-path rust_engine/Cargo.toml -- -D warnings
+
+      - name: Cargo test
+        run: cargo test --manifest-path rust_engine/Cargo.toml --release
+
+  build-wheel:
+    name: Build Wheel (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust_engine/target
+          key: ${{ runner.os }}-wheel-${{ hashFiles('rust_engine/Cargo.lock') }}
+
+      - name: Build wheel
+        run: pip install maturin && maturin build --release --out dist/
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.os }}
+          path: dist/*.whl
+          retention-days: 7
+
+  docker:
+    name: Docker Build & Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: cupp-v2:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test — help
+        run: docker run --rm cupp-v2:ci --help
+
+      - name: Smoke test — strategies list
+        run: docker run --rm cupp-v2:ci strategies list
+
+      - name: Smoke test — generate from profile
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/profiles:/home/cupp/profiles:ro \
+            -v /tmp/cupp-output:/output \
+            cupp-v2:ci generate \
+              --profile /home/cupp/profiles/example_target.yaml \
+              --output /output/test_wordlist.txt \
+              --no-stats
+          wc -l /tmp/cupp-output/test_wordlist.txt
+
+      - name: Login to GHCR (on release)
+        if: github.event_name == 'release'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to GHCR (on release)
+        if: github.event_name == 'release'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-security-${{ hashFiles('rust_engine/Cargo.lock') }}
+
+      - name: Install bandit
+        run: pip install bandit[toml]
+
+      - name: Bandit Python security scan
+        run: bandit -r cupp/ -ll --skip B101 -f json -o bandit-report.json || true
+
+      - name: Show bandit results
+        run: |
+          cat bandit-report.json | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          issues = data.get('results', [])
+          if issues:
+              print(f'Found {len(issues)} security issues:')
+              for i in issues:
+                  print(f'  [{i[\"issue_severity\"]}] {i[\"issue_text\"]} ({i[\"filename\"]}:{i[\"line_number\"]})')
+          else:
+              print('No security issues found.')
+          "
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --quiet
+
+      - name: Cargo audit
+        run: cargo audit --manifest-path rust_engine/Cargo.toml
+
+  benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust_engine/target
+          key: ${{ runner.os }}-bench-${{ hashFiles('rust_engine/Cargo.lock') }}
+
+      - name: Install deps and build
+        run: |
+          pip install maturin pydantic pyyaml typer rich
+          maturin develop --release
+
+      - name: Run benchmark
+        id: benchmark
+        run: |
+          python3 -c "
+          import time, json
+          from cupp.core.profile import Profile, DateInfo
+          from cupp.config.loader import load_config, merge_config
+          from cupp.core.engine import Engine
+
+          profile = Profile(
+              name='john', surname='doe', nickname='johnny',
+              birthdate=DateInfo(day=15, month=6, year=1990),
+              pet_name='rex', company='acme', keywords=['security'],
+          )
+          results = {}
+          for label, use_rust in [('python', False), ('rust', True)]:
+              cfg = load_config()
+              cfg = merge_config(cfg, {'generation': {'use_rust_engine': use_rust, 'max_depth': 3}})
+              engine = Engine(config=cfg)
+              start = time.perf_counter()
+              count = sum(1 for _ in zip(range(100_000), engine.generate(profile)))
+              elapsed = time.perf_counter() - start
+              results[label] = {'count': count, 'elapsed': round(elapsed, 3), 'speed': round(count/elapsed)}
+          print(json.dumps(results))
+          " > benchmark_results.json
+          cat benchmark_results.json
+
+      - name: Post benchmark comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('benchmark_results.json', 'utf8'));
+            const py = results.python;
+            const rs = results.rust;
+            const speedup = (rs.speed / py.speed).toFixed(1);
+            const body = `## Benchmark Results\n\n| Engine | Passwords | Time (s) | Speed (pass/s) |\n|--------|-----------|----------|----------------|\n| Python only | ${py.count.toLocaleString()} | ${py.elapsed} | ${py.speed.toLocaleString()} |\n| Python + Rust | ${rs.count.toLocaleString()} | ${rs.elapsed} | ${rs.speed.toLocaleString()} |\n\nSpeedup: **${speedup}x**`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
