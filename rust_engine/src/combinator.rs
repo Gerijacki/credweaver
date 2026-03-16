@@ -1,4 +1,3 @@
-
 #[derive(Clone, Debug)]
 pub struct CombinatorConfig {
     pub separators: Vec<String>,
@@ -58,7 +57,11 @@ impl Combinator {
     pub fn new(tokens: Vec<String>, config: CombinatorConfig) -> Self {
         let depth = 1;
         let n = tokens.len();
-        let perm_count = if n >= depth { permutation_count(n, depth) } else { 0 };
+        let perm_count = if n >= depth {
+            permutation_count(n, depth)
+        } else {
+            0
+        };
         Combinator {
             tokens,
             config,

@@ -101,8 +101,8 @@ filters:
 
 Writing to disk is the bottleneck for large runs:
 
-| Storage | Write speed | CUPP throughput ceiling |
-|---------|------------|------------------------|
+| Storage | Write speed | CredWeaver throughput ceiling |
+|---------|------------|-------------------------------|
 | NVMe SSD | ~3 GB/s | ~300M pass/s (10 bytes avg) |
 | SATA SSD | ~500 MB/s | ~50M pass/s |
 | HDD | ~100 MB/s | ~10M pass/s |
@@ -116,7 +116,7 @@ Compressed output (`--compress`) reduces I/O but adds ~20% CPU overhead.
 ### Find Python bottleneck
 
 ```bash
-python -m cProfile -s cumulative -m cupp.cli benchmark --iterations 100000 2>&1 | head -30
+python -m cProfile -s cumulative -m credweaver.cli benchmark --iterations 100000 2>&1 | head -30
 ```
 
 ### Profile Rust code

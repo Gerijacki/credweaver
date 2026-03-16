@@ -137,7 +137,8 @@ impl LcgRng {
     }
 
     fn next_u64(&mut self) -> u64 {
-        self.state = self.state
+        self.state = self
+            .state
             .wrapping_mul(6364136223846793005)
             .wrapping_add(1442695040888963407);
         self.state
@@ -158,11 +159,7 @@ fn fnv1a_simple(data: &[u8]) -> u64 {
 }
 
 /// High-level function: train and generate passwords in one call.
-pub fn markov_generate(
-    seed_tokens: Vec<String>,
-    length: usize,
-    count: usize,
-) -> Vec<String> {
+pub fn markov_generate(seed_tokens: Vec<String>, length: usize, count: usize) -> Vec<String> {
     if seed_tokens.is_empty() || length == 0 || count == 0 {
         return vec![];
     }

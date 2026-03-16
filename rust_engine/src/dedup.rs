@@ -40,8 +40,8 @@ impl BloomFilter {
         let size = (-(capacity as f64) * error_rate.ln() / (ln2 * ln2)).ceil() as usize;
         let size = size.max(64);
         let k = ((size as f64 / capacity as f64) * ln2).round() as usize;
-        let k = k.max(1).min(20);
-        let words = (size + 63) / 64;
+        let k = k.clamp(1, 20);
+        let words = size.div_ceil(64);
         BloomFilter {
             bits: vec![0u64; words],
             size,
@@ -133,7 +133,12 @@ mod tests {
 
     #[test]
     fn test_dedup_exact() {
-        let v = vec!["a".to_string(), "b".to_string(), "a".to_string(), "c".to_string()];
+        let v = vec![
+            "a".to_string(),
+            "b".to_string(),
+            "a".to_string(),
+            "c".to_string(),
+        ];
         let result = dedup_exact(v);
         assert_eq!(result.len(), 3);
     }

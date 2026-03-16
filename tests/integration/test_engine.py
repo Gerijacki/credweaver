@@ -1,21 +1,25 @@
 import tempfile
 from pathlib import Path
-from cupp.core.engine import Engine
-from cupp.core.profile import Profile, DateInfo
-from cupp.config.loader import load_config, merge_config
+
+from credweaver.config.loader import load_config, merge_config
+from credweaver.core.engine import Engine
+from credweaver.core.profile import Profile
 
 
 def test_engine_generate_to_file():
     profile = Profile(name="test", keywords=["demo"])
     cfg = load_config()
-    cfg = merge_config(cfg, {
-        "generation": {"max_depth": 1, "use_rust_engine": False},
-        "mutations": {
-            "leet": {"enabled": False},
-            "append": {"numbers_range": [0, 0], "symbols": [], "years": False},
+    cfg = merge_config(
+        cfg,
+        {
+            "generation": {"max_depth": 1, "use_rust_engine": False},
+            "mutations": {
+                "leet": {"enabled": False},
+                "append": {"numbers_range": [0, 0], "symbols": [], "years": False},
+            },
+            "filters": {"min_length": 4, "max_length": 10, "dedup": False},
         },
-        "filters": {"min_length": 4, "max_length": 10, "dedup": False},
-    })
+    )
     engine = Engine(config=cfg)
 
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:

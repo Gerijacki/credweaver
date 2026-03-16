@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: cupp-output-pvc
-  namespace: cupp-v2
+  name: credweaver-output-pvc
+  namespace: credweaver
   labels:
-    app: cupp-v2
+    app: credweaver
 spec:
   accessModes:
     - ReadWriteOnce

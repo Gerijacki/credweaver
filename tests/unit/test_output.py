@@ -1,8 +1,9 @@
+import gzip
 import tempfile
 from pathlib import Path
-import gzip
-from cupp.output.file_writer import stream_to_file
-from cupp.output.stats import GenerationStats, StatsTracker
+
+from credweaver.output.file_writer import stream_to_file
+from credweaver.output.stats import GenerationStats, StatsTracker
 
 
 def _make_stream(n=100):
@@ -33,6 +34,7 @@ def test_stream_to_file_gzip():
 
 def test_stats_tracker():
     import time
+
     tracker = StatsTracker()
     time.sleep(0.01)
     stats = tracker.finish(output_path="test.txt")

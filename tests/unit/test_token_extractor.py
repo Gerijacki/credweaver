@@ -1,6 +1,7 @@
 import pytest
-from cupp.core.profile import Profile, DateInfo
-from cupp.core.token_extractor import TokenExtractor
+
+from credweaver.core.profile import DateInfo, Profile
+from credweaver.core.token_extractor import TokenExtractor
 
 
 @pytest.fixture

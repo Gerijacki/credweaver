@@ -1,10 +1,10 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: cupp-scheduled
-  namespace: cupp-v2
+  name: credweaver-scheduled
+  namespace: credweaver
   labels:
-    app: cupp-v2
+    app: credweaver
     component: scheduled-generator
 spec:
   schedule: "0 2 * * *"
@@ -17,21 +17,21 @@ spec:
       template:
         metadata:
           labels:
-            app: cupp-v2
+            app: credweaver
         spec:
           restartPolicy: OnFailure
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
           containers:
-            - name: cupp
-              image: cupp-v2:latest
+            - name: credweaver
+              image: credweaver:latest
               args:
                 - "generate"
                 - "--profile"
                 - "/profiles/target.yaml"
                 - "--config"
-                - "/config/cupp.yaml"
+                - "/config/credweaver.yaml"
                 - "--output"
                 - "/output/wordlist-$(date +%Y%m%d).txt"
                 - "--preset"
@@ -55,10 +55,10 @@ spec:
           volumes:
             - name: profiles
               configMap:
-                name: cupp-profiles
+                name: credweaver-profiles
             - name: output
               persistentVolumeClaim:
-                claimName: cupp-output-pvc
+                claimName: credweaver-output-pvc
             - name: config
               configMap:
-                name: cupp-config
+                name: credweaver-config

@@ -1,8 +1,8 @@
-# CUPP v2 Architecture
+# CredWeaver Architecture
 
 ## Project Origin
 
-CUPP v2 is a ground-up redesign of the original [CUpp (Common User Passwords Profiler)](https://github.com/Mebus/cupp) by Mebus. The original project is a single-file Python 2/3 script (~500 lines) that accepts a series of prompted questions about a target and generates a flat wordlist. It was last meaningfully maintained around 2021.
+CredWeaver is a ground-up redesign of the original [CUpp (Common User Passwords Profiler)](https://github.com/Mebus/cupp) by Mebus. The original project is a single-file Python 2/3 script (~500 lines) that accepts a series of prompted questions about a target and generates a flat wordlist. It was last meaningfully maintained around 2021.
 
 Key limitations of the original that motivated this redesign:
 
@@ -14,14 +14,14 @@ Key limitations of the original that motivated this redesign:
 - **No test suite**: zero automated tests
 - **No packaging**: no `pyproject.toml`, no installable wheel, no Docker/K8s support
 
-CUPP v2 retains the core concept (profile-driven wordlist generation) while replacing every implementation detail.
+CredWeaver retains the core concept (profile-driven wordlist generation) while replacing every implementation detail.
 
 ## Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         CLI (Typer + Rich)                          │
-│   cupp generate | cupp enhance | cupp benchmark | cupp strategies   │
+│   credweaver generate | enhance | benchmark | strategies            │
 └────────────────────────────────┬────────────────────────────────────┘
                                  │
                     ┌────────────▼────────────┐
@@ -54,10 +54,10 @@ CUPP v2 retains the core concept (profile-driven wordlist generation) while repl
           └──────────────────────┬──────────────────────┘
                                  │
           ┌──────────────────────▼──────────────────────┐
-          │       Rust Engine (cupp_engine)              │
+          │       Rust Engine (credweaver_engine)        │
           │       or Python Fallback Pipeline            │
           │                                              │
-          │  IF use_rust_engine AND cupp_engine present: │
+          │  IF use_rust_engine AND credweaver_engine:   │
           │  ┌─────────────────────────────────────────┐ │
           │  │  generate_combinations(tokens, config)  │ │
           │  │  ├── Combinator (Cartesian product)     │ │
@@ -91,22 +91,22 @@ CUPP v2 retains the core concept (profile-driven wordlist generation) while repl
 
 The Python layer owns the user-facing surface and high-level orchestration:
 
-### CLI (`cupp/cli.py`)
+### CLI (`credweaver/cli.py`)
 Built with [Typer](https://typer.tiangolo.com/) and [Rich](https://github.com/Textualize/rich). Provides five commands: `generate`, `enhance`, `benchmark`, `strategies`, `profile init`, `config`. All heavy work is delegated to the engine layer; the CLI handles argument parsing, progress display, and stats output only.
 
-### Config (`cupp/config/`)
-- `schema.py` — Pydantic v2 `BaseModel` classes for every config section: `GenerationConfig`, `LeetConfig`, `CaseConfig`, `AppendConfig`, `MutationConfig`, `FilterConfig`, `StrategyConfig`, `CuppConfig`.
+### Config (`credweaver/config/`)
+- `schema.py` — Pydantic v2 `BaseModel` classes for every config section: `GenerationConfig`, `LeetConfig`, `CaseConfig`, `AppendConfig`, `MutationConfig`, `FilterConfig`, `StrategyConfig`, `CredWeaverConfig`.
 - `defaults.py` — embeds `DEFAULT_CONFIG_YAML` as a string so the tool works with no external config file present.
-- `loader.py` — `load_config(path=None)` parses YAML (or falls back to defaults), validates via Pydantic, and returns a `CuppConfig`. `merge_config(base, overrides)` does a deep merge, returning a new `CuppConfig` without mutating the original.
+- `loader.py` — `load_config(path=None)` parses YAML (or falls back to defaults), validates via Pydantic, and returns a `CredWeaverConfig`. `merge_config(base, overrides)` does a deep merge, returning a new `CredWeaverConfig` without mutating the original.
 
-### Profile (`cupp/core/profile.py`)
+### Profile (`credweaver/core/profile.py`)
 `Profile` and `DateInfo` are Pydantic v2 models. All string fields are cleaned (stripped, lowercased) by a `field_validator`. `Profile.to_tokens()` returns a flat list of non-null string fields. `Profile.to_date_tokens()` returns all date format variations.
 
-### Token Extractor (`cupp/core/token_extractor.py`)
+### Token Extractor (`credweaver/core/token_extractor.py`)
 `TokenExtractor.extract(profile)` returns a dict with keys `base`, `dates`, `all`. `extract_with_variations(profile)` additionally generates case variants (lower, title, upper) and reversed strings for each base token — this is the list passed to the Rust engine.
 
-### Strategies (`cupp/strategies/`)
-Self-registering plugins via `@register("name")` decorator. Each strategy receives a `CuppConfig` and returns an `Iterator[str]`. The `load_enabled_strategies(config)` function reads `config.strategies.enabled` and instantiates only those listed. Built-in strategies:
+### Strategies (`credweaver/strategies/`)
+Self-registering plugins via `@register("name")` decorator. Each strategy receives a `CredWeaverConfig` and returns an `Iterator[str]`. The `load_enabled_strategies(config)` function reads `config.strategies.enabled` and instantiates only those listed. Built-in strategies:
 
 | Strategy | What it generates |
 |---|---|
@@ -115,26 +115,26 @@ Self-registering plugins via `@register("name")` decorator. Each strategy receiv
 | `keyboard_patterns` | Common keyboard walks × tokens |
 | `common_passwords` | Top-N common passwords × token combinations |
 
-### Mutations (`cupp/mutations/`)
+### Mutations (`credweaver/mutations/`)
 Four mutation classes, each implementing `apply(word) -> Iterator[str]`:
 - `LeetMutation` — substitutes characters with leet equivalents at 3 levels of aggressiveness
 - `CaseMutation` — yields lower, upper, title, toggle, camel variants
 - `AppendMutation` — appends numbers (range), symbols, and years to the input word
 - `PaddingMutation` — wraps words with symbol padding (enabled by `mutations.padding: true`)
 
-### Filters (`cupp/filters/`)
+### Filters (`credweaver/filters/`)
 - `filter_length(stream, min, max)` — generator that drops words outside length bounds
 - `filter_charset(stream, required)` — drops words not satisfying charset requirements (e.g. must contain uppercase + digit)
 - `dedup_stream(stream, capacity)` — yields each word at most once using a Python Bloom filter
 
-### Output (`cupp/output/`)
+### Output (`credweaver/output/`)
 - `stream_to_file(stream, path, compress)` — writes to plain text or gzip, using a 1 MB write buffer; returns a `GenerationStats` object
 - `GenerationStats` — dataclass with `total_generated`, `elapsed_seconds`, `passwords_per_second`, `output_path`
 - `StatsTracker` — context-helper that records start time and computes elapsed on `finish()`
 
 ## Rust Layer (`rust_engine/src/`)
 
-The Rust crate is compiled via [maturin](https://github.com/PyO3/maturin) and [PyO3](https://pyo3.rs/). It exposes a Python extension module named `cupp_engine`.
+The Rust crate is compiled via [maturin](https://github.com/PyO3/maturin) and [PyO3](https://pyo3.rs/). It exposes a Python extension module named `credweaver_engine`.
 
 ### `lib.rs`
 Defines the PyO3 module. Registers all Python-callable functions and classes: `generate_combinations`, `apply_mutations`, `deduplicate`, `entropy_score`, `batch_entropy_score`, `markov_generate`, and the `CombinationIterator` class.
@@ -163,11 +163,11 @@ Bigram Markov chain trained on a list of seed words. `markov_generate(seeds, max
 
 Crossing the FFI boundary (Python calling into Rust or Rust returning values to Python) has a non-trivial per-call overhead of ~100–200 ns due to the GIL acquire/release and reference counting. For a pipeline generating millions of passwords, calling `__next__` once per password would add ~200ms of pure FFI overhead per 1M passwords.
 
-The solution is `collect_batch(n)`: a single FFI call that runs the Rust generator for `n` iterations and returns a `Vec<String>` (converted to a Python `list[str]`) in one crossing. CUPP v2 uses a batch size of 4096, reducing FFI crossings by 4096x:
+The solution is `collect_batch(n)`: a single FFI call that runs the Rust generator for `n` iterations and returns a `Vec<String>` (converted to a Python `list[str]`) in one crossing. CredWeaver uses a batch size of 4096, reducing FFI crossings by 4096x:
 
 ```python
-# Pipeline._run_with_rust in cupp/core/pipeline.py
-rust_iter = cupp_engine.generate_combinations(tokens, rust_config)
+# Pipeline._run_with_rust in credweaver/core/pipeline.py
+rust_iter = credweaver_engine.generate_combinations(tokens, rust_config)
 while True:
     batch = rust_iter.collect_batch(4096)  # single FFI call returns 4096 passwords
     if not batch:
@@ -182,7 +182,7 @@ The Rust side holds all generator state between `collect_batch` calls using `PyC
 Strategies use Python's import-time registration pattern:
 
 ```python
-# cupp/strategies/registry.py
+# credweaver/strategies/registry.py
 _REGISTRY: dict[str, type[Strategy]] = {}
 
 def register(name: str):
@@ -191,12 +191,12 @@ def register(name: str):
         return cls
     return decorator
 
-def load_enabled_strategies(config: CuppConfig) -> list[Strategy]:
+def load_enabled_strategies(config: CredWeaverConfig) -> list[Strategy]:
     return [_REGISTRY[name](config) for name in config.strategies.enabled if name in _REGISTRY]
 ```
 
 Adding a new strategy requires only:
-1. Creating a module in `cupp/strategies/`
+1. Creating a module in `credweaver/strategies/`
 2. Applying `@register("name")` to the class
 3. Importing the module (in `registry.py` or in `cli.py`) to trigger registration
 
@@ -206,8 +206,8 @@ No configuration changes or subclass tracking are needed.
 
 Configuration is resolved in this order (later overrides earlier):
 
-1. Built-in defaults embedded in `cupp/config/defaults.py` (always available, no file required)
-2. User config file (`--config path/to/cupp.yaml`, if provided)
+1. Built-in defaults embedded in `credweaver/config/defaults.py` (always available, no file required)
+2. User config file (`--config path/to/credweaver.yaml`, if provided)
 3. CLI preset (`--preset fast|default|aggressive` — each preset is a dict of partial overrides applied via `merge_config`)
 4. Programmatic overrides via `merge_config(cfg, {...})`
 
@@ -267,32 +267,32 @@ Each candidate goes through multiplicative mutations (Rust) or sequential mutati
 │                                                       │
 │  Stage 2: runtime (python:3.12-slim)                  │
 │   - apt-get: libssl3 only                             │
-│   - useradd cupp (non-root)                           │
+│   - useradd credweaver (non-root)                     │
 │   - pip install /dist/*.whl                           │
-│   - COPY cupp.yaml + profiles/                        │
-│   - ENTRYPOINT ["cupp"]                               │
+│   - COPY credweaver.yaml + profiles/                  │
+│   - ENTRYPOINT ["credweaver"]                         │
 └───────────────────────────────────────────────────────┘
 
 ┌───────────────────────────────────────────────────────┐
 │                Kubernetes Architecture                 │
 │                                                       │
-│  Namespace: cupp-v2                                   │
+│  Namespace: credweaver                                │
 │                                                       │
-│  ConfigMap: cupp-config ──────────────┐               │
-│    cupp.yaml (generation params)      │               │
-│                                       ▼               │
-│  ConfigMap: cupp-profiles ──► Job / CronJob Pod       │
-│    target.yaml                  cupp-v2:latest        │
+│  ConfigMap: credweaver-config ────────────────┐       │
+│    credweaver.yaml (generation params)        │       │
+│                                               ▼       │
+│  ConfigMap: credweaver-profiles ──► Job / CronJob Pod │
+│    target.yaml                  credweaver:latest     │
 │                                 /profiles (RO)        │
-│  PVC: cupp-output-pvc ──────────/output (RW)          │
+│  PVC: credweaver-output-pvc ────/output (RW)          │
 │    10Gi ReadWriteOnce                                 │
-│                                       │               │
-│  Job: cupp-generate ──────────────────┘               │
+│                                               │       │
+│  Job: credweaver-generate ────────────────────┘       │
 │    initContainer: profile existence check             │
-│    container: cupp generate ...                       │
+│    container: credweaver generate ...                 │
 │    backoffLimit: 2, ttl: 3600s                        │
 │                                                       │
-│  CronJob: cupp-scheduled                              │
+│  CronJob: credweaver-scheduled                        │
 │    schedule: "0 2 * * *"                              │
 │    concurrencyPolicy: Forbid                          │
 └───────────────────────────────────────────────────────┘

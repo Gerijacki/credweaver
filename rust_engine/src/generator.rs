@@ -1,7 +1,7 @@
-use serde::Deserialize;
 use crate::combinator::{Combinator, CombinatorConfig};
-use crate::mutations::{MutationConfig, apply_all_mutations};
 use crate::dedup::StreamDeduplicator;
+use crate::mutations::{apply_all_mutations, MutationConfig};
+use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GeneratorConfig {
@@ -32,7 +32,11 @@ impl Default for GeneratorConfig {
             min_length: 6,
             max_length: 20,
             leet_level: 2,
-            case_modes: vec!["lower".to_string(), "title".to_string(), "upper".to_string()],
+            case_modes: vec![
+                "lower".to_string(),
+                "title".to_string(),
+                "upper".to_string(),
+            ],
             append_numbers: true,
             number_range: (0, 99),
             append_symbols: vec!["!".to_string(), "@".to_string(), "#".to_string()],

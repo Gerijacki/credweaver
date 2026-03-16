@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# pre-push hook — runs full test suite before pushing.
+# Installed by scripts/install-hooks.sh
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# ── Activate virtual environment ────────────────────────────────────────────
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+elif [ -f ".venv/Scripts/activate" ]; then
+    # shellcheck disable=SC1091
+    source .venv/Scripts/activate
+else
+    echo "⚠  No .venv found — running with system Python. Install deps first:"
+    echo "   python -m venv .venv && source .venv/bin/activate"
+    echo "   pip install -e '.[dev]' && maturin develop --release"
+    exit 1
+fi
+
+echo "🔍 Running pre-push checks..."
+
+# ── Python tests ─────────────────────────────────────────────────────────────
+echo ""
+echo "▶  pytest tests/unit/ tests/integration/"
+python -m pytest tests/unit/ tests/integration/ -v --tb=short
+PYTEST_EXIT=$?
+
+# ── Rust tests ───────────────────────────────────────────────────────────────
+echo ""
+echo "▶  cargo test"
+cargo test --manifest-path rust_engine/Cargo.toml --release
+CARGO_EXIT=$?
+
+# ── Summary ──────────────────────────────────────────────────────────────────
+if [ $PYTEST_EXIT -ne 0 ] || [ $CARGO_EXIT -ne 0 ]; then
+    echo ""
+    echo "❌ Pre-push checks FAILED — push aborted."
+    echo "   Fix the failing tests before pushing."
+    exit 1
+fi
+
+echo ""
+echo "✅ All pre-push checks passed."

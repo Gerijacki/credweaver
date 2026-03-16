@@ -1,9 +1,9 @@
 import pytest
-from cupp.config.loader import load_config
-from cupp.config.schema import MutationConfig, LeetConfig, CaseConfig, AppendConfig
-from cupp.mutations.leet import LeetMutation
-from cupp.mutations.case import CaseMutation
-from cupp.mutations.append import AppendMutation
+
+from credweaver.config.schema import AppendConfig, CaseConfig, LeetConfig, MutationConfig
+from credweaver.mutations.append import AppendMutation
+from credweaver.mutations.case import CaseMutation
+from credweaver.mutations.leet import LeetMutation
 
 
 @pytest.fixture

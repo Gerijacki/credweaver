@@ -1,12 +1,13 @@
 """
-Benchmark: CUPP v2 generation speed.
+Benchmark: CredWeaver generation speed.
 Run with: python -m pytest tests/benchmarks/ -v -s
 """
+
 import time
-import pytest
-from cupp.core.profile import Profile, DateInfo
-from cupp.config.loader import load_config, merge_config
-from cupp.core.engine import Engine
+
+from credweaver.config.loader import load_config, merge_config
+from credweaver.core.engine import Engine
+from credweaver.core.profile import DateInfo, Profile
 
 BENCHMARK_PROFILE = Profile(
     name="john",

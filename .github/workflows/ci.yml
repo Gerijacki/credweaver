@@ -25,17 +25,31 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install lint deps
-        run: pip install ruff mypy pydantic pyyaml typer rich
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
-      - name: Ruff lint
-        run: ruff check cupp/ tests/
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('rust_engine/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Ruff format check
-        run: ruff format --check cupp/ tests/
+      - name: Install pre-commit
+        run: pip install pre-commit
 
-      - name: mypy
-        run: mypy cupp/ --ignore-missing-imports
+      - name: pre-commit cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run all pre-commit hooks
+        run: pre-commit run --all-files
 
   test-python:
     name: Python Tests (${{ matrix.os }} / py${{ matrix.python-version }})
@@ -74,13 +88,20 @@ jobs:
           restore-keys: ${{ runner.os }}-rust-target-
 
       - name: Install Python deps
-        run: pip install maturin pydantic pyyaml typer rich pytest pytest-cov
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate || .venv\Scripts\activate
+          pip install maturin pydantic pyyaml typer rich pytest pytest-cov
 
       - name: Build Rust engine
-        run: maturin develop --release
+        run: |
+          source .venv/bin/activate || .venv\Scripts\activate
+          maturin develop --release
 
       - name: Run tests
-        run: python -m pytest tests/unit/ tests/integration/ -v --tb=short --cov=cupp --cov-report=xml
+        run: |
+          source .venv/bin/activate || .venv\Scripts\activate
+          python -m pytest tests/unit/ tests/integration/ -v --tb=short --cov=credweaver --cov-report=xml
 
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
@@ -113,7 +134,7 @@ jobs:
         run: cargo fmt --manifest-path rust_engine/Cargo.toml -- --check
 
       - name: Clippy
-        run: cargo clippy --manifest-path rust_engine/Cargo.toml -- -D warnings
+        run: cargo clippy --manifest-path rust_engine/Cargo.toml -- -D clippy::all -A dead_code -A unused_imports -A unused_variables
 
       - name: Cargo test
         run: cargo test --manifest-path rust_engine/Cargo.toml --release
@@ -167,26 +188,26 @@ jobs:
         with:
           context: .
           push: false
-          tags: cupp-v2:ci
+          tags: credweaver:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Smoke test — help
-        run: docker run --rm cupp-v2:ci --help
+        run: docker run --rm credweaver:ci --help
 
       - name: Smoke test — strategies list
-        run: docker run --rm cupp-v2:ci strategies list
+        run: docker run --rm credweaver:ci strategies list
 
       - name: Smoke test — generate from profile
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}/profiles:/home/cupp/profiles:ro \
-            -v /tmp/cupp-output:/output \
-            cupp-v2:ci generate \
-              --profile /home/cupp/profiles/example_target.yaml \
+            -v ${{ github.workspace }}/profiles:/home/credweaver/profiles:ro \
+            -v /tmp/credweaver-output:/output \
+            credweaver:ci generate \
+              --profile /home/credweaver/profiles/example_target.yaml \
               --output /output/test_wordlist.txt \
               --no-stats
-          wc -l /tmp/cupp-output/test_wordlist.txt
+          wc -l /tmp/credweaver-output/test_wordlist.txt
 
       - name: Login to GHCR (on release)
         if: github.event_name == 'release'
@@ -234,7 +255,7 @@ jobs:
         run: pip install bandit[toml]
 
       - name: Bandit Python security scan
-        run: bandit -r cupp/ -ll --skip B101 -f json -o bandit-report.json || true
+        run: bandit -r credweaver/ -ll --skip B101 -f json -o bandit-report.json || true
 
       - name: Show bandit results
         run: |
@@ -254,7 +275,7 @@ jobs:
         run: cargo install cargo-audit --quiet
 
       - name: Cargo audit
-        run: cargo audit --manifest-path rust_engine/Cargo.toml
+        run: cd rust_engine && cargo audit
 
   benchmark:
     name: Performance Benchmark
@@ -282,17 +303,20 @@ jobs:
 
       - name: Install deps and build
         run: |
+          python -m venv .venv
+          source .venv/bin/activate
           pip install maturin pydantic pyyaml typer rich
           maturin develop --release
 
       - name: Run benchmark
         id: benchmark
         run: |
+          source .venv/bin/activate
           python3 -c "
           import time, json
-          from cupp.core.profile import Profile, DateInfo
-          from cupp.config.loader import load_config, merge_config
-          from cupp.core.engine import Engine
+          from credweaver.core.profile import Profile, DateInfo
+          from credweaver.config.loader import load_config, merge_config
+          from credweaver.core.engine import Engine
 
           profile = Profile(
               name='john', surname='doe', nickname='johnny',

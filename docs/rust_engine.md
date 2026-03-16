@@ -2,8 +2,8 @@
 
 ## Overview
 
-The Rust engine (`cupp_engine`) is a compiled Python extension module that
-accelerates the most CPU-intensive parts of CUPP v2:
+The Rust engine (`credweaver_engine`) is a compiled Python extension module that
+accelerates the most CPU-intensive parts of CredWeaver:
 
 - Cartesian-product combination generation
 - Mutation application (leet, case, append)
@@ -70,7 +70,7 @@ The iterator applies combinations + mutations + deduplication in a single pass.
 **Example:**
 
 ```python
-import cupp_engine
+import credweaver_engine
 
 tokens = ["john", "doe", "1990"]
 config = {
@@ -88,7 +88,7 @@ config = {
     "bloom_capacity": 1_000_000,
 }
 
-for password in cupp_engine.generate_combinations(tokens, config):
+for password in credweaver_engine.generate_combinations(tokens, config):
     print(password)
 ```
 
@@ -106,7 +106,7 @@ config = {"leet_level": 1, "case_modes": ["lower", "upper"], "append_numbers": F
           "number_range": [0, 0], "append_symbols": [], "append_years": [],
           "min_length": 4, "max_length": 20}
 
-for mutated in cupp_engine.apply_mutations(passwords, config):
+for mutated in credweaver_engine.apply_mutations(passwords, config):
     print(mutated)
 ```
 
@@ -116,7 +116,7 @@ Exact deduplication using a HashSet. Returns a new list with duplicates removed.
 Order is not guaranteed to be preserved.
 
 ```python
-unique = cupp_engine.deduplicate(["john", "doe", "john", "rex"])
+unique = credweaver_engine.deduplicate(["john", "doe", "john", "rex"])
 # → ["john", "doe", "rex"]  (order may vary)
 ```
 
@@ -125,7 +125,7 @@ unique = cupp_engine.deduplicate(["john", "doe", "john", "rex"])
 Returns the Shannon entropy (bits) of a single password string.
 
 ```python
-score = cupp_engine.entropy_score("P@ssw0rd!")
+score = credweaver_engine.entropy_score("P@ssw0rd!")
 # → ~2.94 bits
 ```
 
@@ -135,7 +135,7 @@ Scores a list of passwords in parallel using rayon. Returns list of
 `(password, entropy)` tuples, unsorted.
 
 ```python
-scores = cupp_engine.batch_entropy_score(["abc", "P@ssw0rd!", "password"])
+scores = credweaver_engine.batch_entropy_score(["abc", "P@ssw0rd!", "password"])
 ```
 
 ### `markov_generate(seed_tokens: list[str], length: int, count: int) -> list[str]`
@@ -144,7 +144,7 @@ Trains a bigram Markov chain on the seed tokens and generates `count` passwords
 of at most `length` characters.
 
 ```python
-passwords = cupp_engine.markov_generate(["john", "doe", "johnny"], 8, 20)
+passwords = credweaver_engine.markov_generate(["john", "doe", "johnny"], 8, 20)
 ```
 
 ## CombinationIterator
@@ -153,7 +153,7 @@ A Python class (`__iter__` + `__next__`) wrapping the Rust `PasswordIterator`.
 It is single-pass: once exhausted it does not reset.
 
 ```python
-it = cupp_engine.generate_combinations(tokens, config)
+it = credweaver_engine.generate_combinations(tokens, config)
 for p in it:
     process(p)
 ```

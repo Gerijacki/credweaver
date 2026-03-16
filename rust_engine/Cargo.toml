@@ -1,12 +1,12 @@
 [package]
-name = "cupp_engine"
+name = "credweaver_engine"
 version = "0.1.0"
 edition = "2021"
-description = "High-performance Rust engine for CUPP v2 password generation"
+description = "High-performance Rust engine for CredWeaver credential wordlist generation"
 license = "MIT"
 
 [lib]
-name = "cupp_engine"
+name = "credweaver_engine"
 crate-type = ["cdylib"]
 
 [dependencies]

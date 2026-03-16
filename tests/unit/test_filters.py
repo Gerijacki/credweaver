@@ -1,6 +1,6 @@
-from cupp.filters.length import filter_length
-from cupp.filters.charset import filter_charset
-from cupp.filters.dedup import dedup_stream, PythonBloomFilter
+from credweaver.filters.charset import filter_charset
+from credweaver.filters.dedup import PythonBloomFilter, dedup_stream
+from credweaver.filters.length import filter_length
 
 
 def test_filter_length():
@@ -27,7 +27,7 @@ def test_dedup_stream():
 
 def test_bloom_filter():
     bf = PythonBloomFilter(capacity=1000)
-    assert not bf.add("hello")   # first time: not present
-    assert bf.add("hello")       # second time: present
+    assert not bf.add("hello")  # first time: not present
+    assert bf.add("hello")  # second time: present
     assert "hello" in bf
     assert "world" not in bf

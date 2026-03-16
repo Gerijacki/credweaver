@@ -3,14 +3,14 @@ requires = ["maturin>=1.7,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "cupp-v2"
+name = "credweaver"
 version = "2.0.0"
-description = "Advanced password wordlist generator — Python + Rust hybrid"
+description = "CredWeaver — Weave profile data into targeted credential wordlists. Python + Rust hybrid for authorized pentesting."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
-authors = [{ name = "CUPP v2 Contributors" }]
-keywords = ["security", "pentesting", "wordlist", "password", "audit"]
+authors = [{ name = "CredWeaver Contributors" }]
+keywords = ["security", "pentesting", "wordlist", "password", "credentials", "osint", "ctf", "cracking"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Rust",
@@ -32,19 +32,27 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.10",
     "maturin>=1.7",
+    "pre-commit>=3.7",
 ]
 
 [project.scripts]
-cupp = "cupp.cli:main"
+credweaver = "credweaver.cli:main"
+cw = "credweaver.cli:main"
 
 [tool.maturin]
-module-name = "cupp_engine"
+module-name = "credweaver_engine"
 manifest-path = "rust_engine/Cargo.toml"
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "C4", "SIM"]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "SIM108", # ternary operator — not always clearer
+]
 
 [tool.mypy]
 python_version = "3.11"

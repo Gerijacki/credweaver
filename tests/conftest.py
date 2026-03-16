@@ -1,7 +1,8 @@
 import pytest
-from cupp.core.profile import Profile, DateInfo
-from cupp.config.loader import load_config
-from cupp.config.schema import CuppConfig
+
+from credweaver.config.loader import load_config
+from credweaver.config.schema import CredWeaverConfig
+from credweaver.core.profile import DateInfo, Profile
 
 
 @pytest.fixture
@@ -19,20 +20,24 @@ def sample_profile() -> Profile:
 
 
 @pytest.fixture
-def default_config() -> CuppConfig:
+def default_config() -> CredWeaverConfig:
     return load_config()
 
 
 @pytest.fixture
-def fast_config() -> CuppConfig:
-    from cupp.config.loader import merge_config
+def fast_config() -> CredWeaverConfig:
+    from credweaver.config.loader import merge_config
+
     cfg = load_config()
-    return merge_config(cfg, {
-        "generation": {"max_depth": 2, "use_rust_engine": False},
-        "mutations": {
-            "leet": {"level": 1},
-            "case": {"modes": ["lower"]},
-            "append": {"numbers_range": [0, 9], "symbols": ["!"], "years": False},
+    return merge_config(
+        cfg,
+        {
+            "generation": {"max_depth": 2, "use_rust_engine": False},
+            "mutations": {
+                "leet": {"level": 1},
+                "case": {"modes": ["lower"]},
+                "append": {"numbers_range": [0, 9], "symbols": ["!"], "years": False},
+            },
+            "filters": {"dedup": False},
         },
-        "filters": {"dedup": False},
-    })
+    )

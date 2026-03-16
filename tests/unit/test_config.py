@@ -1,15 +1,13 @@
 import pytest
 from pydantic import ValidationError
-from cupp.config.schema import (
-    CuppConfig,
-    LeetConfig,
+
+from credweaver.config.loader import load_config, merge_config
+from credweaver.config.schema import (
     CaseConfig,
-    AppendConfig,
-    MutationConfig,
+    CredWeaverConfig,
     FilterConfig,
-    GenerationConfig,
+    LeetConfig,
 )
-from cupp.config.loader import load_config, merge_config
 
 
 class TestLeetConfig:
@@ -59,7 +57,7 @@ class TestFilterConfig:
 class TestLoadConfig:
     def test_load_default(self):
         cfg = load_config()
-        assert isinstance(cfg, CuppConfig)
+        assert isinstance(cfg, CredWeaverConfig)
         assert cfg.generation.max_depth == 3
         assert cfg.mutations.leet.level == 2
 

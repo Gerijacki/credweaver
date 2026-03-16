@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cupp-config
-  namespace: cupp-v2
+  name: credweaver-config
+  namespace: credweaver
 data:
-  cupp.yaml: |
+  credweaver.yaml: |
     generation:
       max_depth: 3
       separators: ["", "_", "-", "."]

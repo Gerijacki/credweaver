@@ -14,7 +14,11 @@ impl Default for MutationConfig {
     fn default() -> Self {
         MutationConfig {
             leet_level: 2,
-            case_modes: vec!["lower".to_string(), "title".to_string(), "upper".to_string()],
+            case_modes: vec![
+                "lower".to_string(),
+                "title".to_string(),
+                "upper".to_string(),
+            ],
             append_numbers: true,
             number_range: (0, 99),
             append_symbols: vec!["!".to_string(), "@".to_string(), "#".to_string()],
@@ -197,22 +201,22 @@ pub fn apply_append(
     if numbers {
         let (lo, hi) = num_range;
         for n in lo..=hi {
-            results.push(format!("{}{}", s, n));
+            results.push(format!("{s}{n}"));
             if n > 0 {
-                results.push(format!("{}{}", n, s));
+                results.push(format!("{n}{s}"));
             }
         }
     }
 
     for sym in symbols {
-        results.push(format!("{}{}", s, sym));
-        results.push(format!("{}{}", sym, s));
+        results.push(format!("{s}{sym}"));
+        results.push(format!("{sym}{s}"));
     }
 
     for &year in years {
-        results.push(format!("{}{}", s, year));
+        results.push(format!("{s}{year}"));
         let y2 = year % 100;
-        results.push(format!("{}{:02}", s, y2));
+        results.push(format!("{s}{y2:02}"));
     }
 
     results

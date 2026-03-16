@@ -1,17 +1,20 @@
 import pytest
-from cupp.core.profile import Profile, DateInfo
-from cupp.strategies.concatenation import ConcatenationStrategy
-from cupp.strategies.date_based import DateBasedStrategy
-from cupp.strategies.keyboard_patterns import KeyboardPatternsStrategy
-from cupp.strategies.common_passwords import CommonPasswordsStrategy
+
+from credweaver.core.profile import DateInfo, Profile
+from credweaver.strategies.common_passwords import CommonPasswordsStrategy
+from credweaver.strategies.concatenation import ConcatenationStrategy
+from credweaver.strategies.date_based import DateBasedStrategy
+from credweaver.strategies.keyboard_patterns import KeyboardPatternsStrategy
 
 
 @pytest.fixture
 def full_profile():
     return Profile(
-        name="alice", surname="smith",
+        name="alice",
+        surname="smith",
         birthdate=DateInfo(day=1, month=3, year=1985),
-        pet_name="fluffy", company="techcorp",
+        pet_name="fluffy",
+        company="techcorp",
     )
 
 

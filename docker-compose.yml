@@ -1,11 +1,11 @@
 version: "3.9"
 
 services:
-  cupp-dev:
+  credweaver-dev:
     build:
       context: .
       target: builder
-    image: cupp-v2-dev:latest
+    image: credweaver-dev:latest
     volumes:
       - .:/build
       - cargo-cache:/root/.cargo/registry
@@ -18,21 +18,21 @@ services:
     tty: true
     entrypoint: /bin/bash
 
-  cupp-run:
+  credweaver-run:
     build:
       context: .
       target: runtime
-    image: cupp-v2:latest
+    image: credweaver:latest
     volumes:
-      - ./profiles:/home/cupp/profiles:ro
+      - ./profiles:/home/credweaver/profiles:ro
       - ./output:/output
-    command: ["generate", "--profile", "/home/cupp/profiles/example_target.yaml", "--output", "/output/wordlist.txt"]
+    command: ["generate", "--profile", "/home/credweaver/profiles/example_target.yaml", "--output", "/output/wordlist.txt"]
 
-  cupp-test:
+  credweaver-test:
     build:
       context: .
       target: builder
-    image: cupp-v2-dev:latest
+    image: credweaver-dev:latest
     volumes:
       - .:/build
       - cargo-cache:/root/.cargo/registry

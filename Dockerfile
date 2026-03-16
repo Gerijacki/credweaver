@@ -19,9 +19,10 @@ COPY rust_engine/Cargo.toml rust_engine/Cargo.lock* ./rust_engine/
 RUN pip install --no-cache-dir maturin pydantic pyyaml typer rich
 
 # Copy source
-COPY cupp/ ./cupp/
+COPY README.md ./
+COPY credweaver/ ./credweaver/
 COPY rust_engine/src/ ./rust_engine/src/
-COPY cupp.yaml ./
+COPY credweaver.yaml ./
 
 # Build wheel (compiles Rust + packages Python)
 RUN maturin build --release --out /dist
@@ -29,9 +30,9 @@ RUN maturin build --release --out /dist
 # Stage 2: Runtime image
 FROM python:3.12-slim AS runtime
 
-LABEL maintainer="CUPP v2 Contributors"
-LABEL description="CUPP v2 — Advanced Password Wordlist Generator"
-LABEL org.opencontainers.image.source="https://github.com/Gerijacki/cupp_v2"
+LABEL maintainer="CredWeaver Contributors"
+LABEL description="CredWeaver — Advanced Credential Wordlist Generator"
+LABEL org.opencontainers.image.source="https://github.com/Gerijacki/credweaver"
 
 # Install runtime deps only
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -39,22 +40,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN useradd --create-home --shell /bin/bash cupp
-USER cupp
-WORKDIR /home/cupp
+RUN useradd --create-home --shell /bin/bash credweaver
+USER credweaver
+WORKDIR /home/credweaver
 
 # Copy wheel from builder and install
 COPY --from=builder /dist/*.whl /tmp/
 RUN pip install --no-cache-dir --user /tmp/*.whl && rm /tmp/*.whl
 
 # Copy default config and profiles
-COPY --chown=cupp:cupp cupp.yaml ./
-COPY --chown=cupp:cupp profiles/ ./profiles/
+COPY --chown=credweaver:credweaver credweaver.yaml ./
+COPY --chown=credweaver:credweaver profiles/ ./profiles/
 
 # Output volume
 VOLUME ["/output"]
 
-ENV PATH="/home/cupp/.local/bin:${PATH}"
+ENV PATH="/home/credweaver/.local/bin:${PATH}"
 
-ENTRYPOINT ["cupp"]
+ENTRYPOINT ["credweaver"]
 CMD ["--help"]

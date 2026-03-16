@@ -2,9 +2,9 @@
 
 ## Overview
 
-CUPP v2 uses a self-registering plugin system for generation strategies.
+CredWeaver uses a self-registering plugin system for generation strategies.
 Any Python class that:
-1. Inherits from `cupp.strategies.base.Strategy`
+1. Inherits from `credweaver.strategies.base.Strategy`
 2. Is decorated with `@register("strategy_name")`
 3. Is imported before `load_enabled_strategies` is called
 
@@ -18,9 +18,9 @@ will be available as a strategy.
 # my_strategies/company_patterns.py
 
 from typing import Iterator
-from cupp.strategies.base import Strategy
-from cupp.strategies.registry import register
-from cupp.core.profile import Profile
+from credweaver.strategies.base import Strategy
+from credweaver.strategies.registry import register
+from credweaver.core.profile import Profile
 
 
 @register("company_patterns")
@@ -80,12 +80,12 @@ strategies:
 The strategy module must be imported before `load_enabled_strategies` runs.
 There are two ways to achieve this:
 
-**Option A**: Add the import to `cupp/strategies/registry.py` in the
+**Option A**: Add the import to `credweaver/strategies/registry.py` in the
 `load_enabled_strategies` function:
 
 ```python
-def load_enabled_strategies(config: CuppConfig) -> list[Strategy]:
-    from cupp.strategies import concatenation, date_based, keyboard_patterns, common_passwords
+def load_enabled_strategies(config: CredWeaverConfig) -> list[Strategy]:
+    from credweaver.strategies import concatenation, date_based, keyboard_patterns, common_passwords
     from my_strategies import company_patterns  # ← add this
     return [get_strategy(name, config) for name in config.strategies.enabled]
 ```
@@ -94,8 +94,8 @@ def load_enabled_strategies(config: CuppConfig) -> list[Strategy]:
 
 ```python
 from my_strategies import company_patterns  # triggers @register
-from cupp import Engine
-from cupp.core.profile import Profile
+from credweaver import Engine
+from credweaver.core.profile import Profile
 
 engine = Engine()
 profile = Profile(company="acme", name="john")
@@ -112,7 +112,7 @@ class Strategy(ABC):
     name: str                      # set by @register decorator
     description: str = ""         # human-readable description
 
-    def __init__(self, config: CuppConfig): ...
+    def __init__(self, config: CredWeaverConfig): ...
 
     @abstractmethod
     def generate(self, profile: Profile) -> Iterator[str]: ...
@@ -143,7 +143,7 @@ self.config.mutations.append.years     # bool: append years
 Use `TokenExtractor` inside your strategy to derive normalized tokens:
 
 ```python
-from cupp.core.token_extractor import TokenExtractor
+from credweaver.core.token_extractor import TokenExtractor
 
 extractor = TokenExtractor()
 tokens = extractor.extract(profile)
@@ -156,7 +156,7 @@ all_tokens = extractor.extract_with_variations(profile)
 ## Registry API
 
 ```python
-from cupp.strategies.registry import (
+from credweaver.strategies.registry import (
     register,           # decorator
     get_strategy,       # instantiate by name
     list_strategies,    # list registered names
@@ -169,7 +169,7 @@ from cupp.strategies.registry import (
 
 Registers the decorated class under `name`. Sets `cls.name = name`.
 
-### `get_strategy(name: str, config: CuppConfig) -> Strategy`
+### `get_strategy(name: str, config: CredWeaverConfig) -> Strategy`
 
 Instantiates the strategy registered under `name`.
 Raises `KeyError` if the strategy is not registered.
@@ -178,7 +178,7 @@ Raises `KeyError` if the strategy is not registered.
 
 Returns the names of all currently registered strategies.
 
-### `load_enabled_strategies(config: CuppConfig) -> list[Strategy]`
+### `load_enabled_strategies(config: CredWeaverConfig) -> list[Strategy]`
 
 Imports all built-in strategy modules (to trigger `@register`), then
 instantiates and returns strategies for each name in
@@ -220,9 +220,9 @@ class SprayListStrategy(Strategy):
 
 ```python
 # tests/test_spray_list.py
-from cupp.config.loader import load_config
+from credweaver.config.loader import load_config
 from my_strategies.spray_list import SprayListStrategy
-from cupp.core.profile import Profile
+from credweaver.core.profile import Profile
 
 def test_spray_list_generates():
     config = load_config()

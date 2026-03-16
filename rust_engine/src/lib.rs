@@ -2,17 +2,17 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 mod combinator;
-mod mutations;
 mod dedup;
 mod entropy;
-mod markov;
 mod generator;
+mod markov;
+mod mutations;
 
-use mutations::{MutationConfig, apply_all_mutations};
 use dedup::dedup_exact;
-use entropy::{shannon_entropy, batch_score};
+use entropy::{batch_score, shannon_entropy};
+use generator::{generate_stream, GeneratorConfig, PasswordIterator};
 use markov::markov_generate;
-use generator::{GeneratorConfig, PasswordIterator, generate_stream};
+use mutations::{apply_all_mutations, MutationConfig};
 
 // ─── Helper: parse GeneratorConfig from a Python dict ────────────────────────
 
@@ -233,18 +233,14 @@ fn batch_entropy_score(passwords: Vec<String>) -> Vec<(String, f64)> {
 /// Generate passwords using a Markov chain trained on seed tokens.
 #[pyfunction]
 #[pyo3(name = "markov_generate")]
-fn markov_generate_py(
-    seed_tokens: Vec<String>,
-    length: usize,
-    count: usize,
-) -> Vec<String> {
+fn markov_generate_py(seed_tokens: Vec<String>, length: usize, count: usize) -> Vec<String> {
     markov_generate(seed_tokens, length, count)
 }
 
 // ─── Module definition ────────────────────────────────────────────────────────
 
 #[pymodule]
-fn cupp_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn credweaver_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CombinationIterator>()?;
     m.add_class::<MutationIterator>()?;
     m.add_function(wrap_pyfunction!(generate_combinations, m)?)?;

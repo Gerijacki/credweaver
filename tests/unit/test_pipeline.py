@@ -1,5 +1,5 @@
-from cupp.core.pipeline import Pipeline
-from cupp.config.loader import load_config, merge_config
+from credweaver.config.loader import merge_config
+from credweaver.core.pipeline import Pipeline
 
 
 def test_pipeline_generates_passwords(sample_profile, fast_config):

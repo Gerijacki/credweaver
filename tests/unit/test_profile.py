@@ -1,4 +1,4 @@
-from cupp.core.profile import Profile, DateInfo
+from credweaver.core.profile import DateInfo, Profile
 
 
 def test_profile_token_extraction():
