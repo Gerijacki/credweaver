@@ -35,19 +35,19 @@ LABEL maintainer="CredWeaver Contributors"
 LABEL description="CredWeaver — Advanced Credential Wordlist Generator"
 LABEL org.opencontainers.image.source="https://github.com/Gerijacki/credweaver"
 
-# Install runtime deps only
+# Install runtime deps and the wheel as root → system site-packages.
+# Doing this before USER switch avoids all --user / PYTHONNOUSERSITE path issues.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
+RUN --mount=type=bind,from=builder,source=/dist,target=/dist \
+    pip install --no-cache-dir /dist/*.whl
+
+# Drop to non-root user for runtime
 RUN useradd --create-home --shell /bin/bash credweaver
 USER credweaver
 WORKDIR /home/credweaver
-
-# Install wheel directly from builder stage — no copy, no cleanup permissions issue
-RUN --mount=type=bind,from=builder,source=/dist,target=/dist \
-    pip install --no-cache-dir --user /dist/*.whl
 
 # Copy default config and profiles
 COPY --chown=credweaver:credweaver credweaver.yaml ./
@@ -55,8 +55,6 @@ COPY --chown=credweaver:credweaver profiles/ ./profiles/
 
 # Output volume
 VOLUME ["/output"]
-
-ENV PATH="/home/credweaver/.local/bin:${PATH}"
 
 ENTRYPOINT ["credweaver"]
 CMD ["--help"]

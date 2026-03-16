@@ -47,8 +47,8 @@ cupp_engine*.so
 cupp_engine*.pyd
 cupp_v2*.egg-info/
 
-# Output files
-output/
+# Output files (anchored to repo root — does NOT ignore credweaver/output/ source package)
+/output/
 *.txt.gz
 wordlist*.txt
 enhanced*.txt
