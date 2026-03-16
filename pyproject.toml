@@ -42,6 +42,7 @@ cw = "credweaver.cli:main"
 [tool.maturin]
 module-name = "credweaver_engine"
 manifest-path = "rust_engine/Cargo.toml"
+python-packages = ["credweaver"]
 
 [tool.ruff]
 target-version = "py311"
