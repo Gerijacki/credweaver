@@ -6,6 +6,9 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
+# Ensure Rust toolchain is on PATH (rustup installs to ~/.cargo/bin)
+export PATH="$HOME/.cargo/bin:$PATH"
+
 # ── Activate virtual environment ────────────────────────────────────────────
 if [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
