@@ -205,6 +205,7 @@ jobs:
 
       - name: Smoke test — generate from profile
         run: |
+          mkdir -p /tmp/credweaver-output && chmod 777 /tmp/credweaver-output
           docker run --rm \
             -v ${{ github.workspace }}/profiles:/home/credweaver/profiles:ro \
             -v /tmp/credweaver-output:/output \
