@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Stage 1: Rust + Python build environment
 FROM python:3.12-slim AS builder
 
@@ -44,9 +45,9 @@ RUN useradd --create-home --shell /bin/bash credweaver
 USER credweaver
 WORKDIR /home/credweaver
 
-# Copy wheel from builder and install
-COPY --from=builder /dist/*.whl /tmp/
-RUN pip install --no-cache-dir --user /tmp/*.whl && rm /tmp/*.whl
+# Install wheel directly from builder stage — no copy, no cleanup permissions issue
+RUN --mount=type=bind,from=builder,source=/dist,target=/dist \
+    pip install --no-cache-dir --user /dist/*.whl
 
 # Copy default config and profiles
 COPY --chown=credweaver:credweaver credweaver.yaml ./
