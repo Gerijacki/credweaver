@@ -70,6 +70,8 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -87,21 +89,23 @@ jobs:
           key: ${{ runner.os }}-rust-target-${{ hashFiles('rust_engine/src/**/*.rs', 'rust_engine/Cargo.toml') }}
           restore-keys: ${{ runner.os }}-rust-target-
 
-      - name: Install Python deps
+      # Create venv and expose it to all subsequent steps via $GITHUB_PATH.
+      # This avoids "source .venv/bin/activate" in every run block (fragile
+      # across shells and platforms) and ensures maturin installs into the
+      # correct interpreter.
+      - name: Create venv & add to PATH
         run: |
           python -m venv .venv
-          source .venv/bin/activate || .venv\Scripts\activate
-          pip install maturin pydantic pyyaml typer rich pytest pytest-cov
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      - name: Install Python deps
+        run: pip install maturin pydantic pyyaml typer rich pytest pytest-cov
 
       - name: Build Rust engine
-        run: |
-          source .venv/bin/activate || .venv\Scripts\activate
-          maturin develop --release
+        run: maturin develop --release
 
       - name: Run tests
-        run: |
-          source .venv/bin/activate || .venv\Scripts\activate
-          python -m pytest tests/unit/ tests/integration/ -v --tb=short --cov=credweaver --cov-report=xml
+        run: python -m pytest tests/unit/ tests/integration/ -v --tb=short --cov=credweaver --cov-report=xml
 
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
@@ -188,6 +192,7 @@ jobs:
         with:
           context: .
           push: false
+          load: true   # export image to local Docker daemon so docker run works
           tags: credweaver:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -240,8 +245,10 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install Rust
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -259,9 +266,9 @@ jobs:
 
       - name: Show bandit results
         run: |
-          cat bandit-report.json | python3 -c "
+          python3 -c "
           import json, sys
-          data = json.load(sys.stdin)
+          data = json.load(open('bandit-report.json'))
           issues = data.get('results', [])
           if issues:
               print(f'Found {len(issues)} security issues:')
@@ -271,8 +278,12 @@ jobs:
               print('No security issues found.')
           "
 
+      # Use taiki-e/install-action to download a pre-built cargo-audit binary.
+      # This is far faster than `cargo install cargo-audit` (no compilation).
       - name: Install cargo-audit
-        run: cargo install cargo-audit --quiet
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
 
       - name: Cargo audit
         run: cd rust_engine && cargo audit
@@ -289,8 +300,10 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install Rust
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -301,17 +314,19 @@ jobs:
             rust_engine/target
           key: ${{ runner.os }}-bench-${{ hashFiles('rust_engine/Cargo.lock') }}
 
-      - name: Install deps and build
+      - name: Create venv & add to PATH
         run: |
           python -m venv .venv
-          source .venv/bin/activate
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      - name: Install deps and build
+        run: |
           pip install maturin pydantic pyyaml typer rich
           maturin develop --release
 
       - name: Run benchmark
         id: benchmark
         run: |
-          source .venv/bin/activate
           python3 -c "
           import time, json
           from credweaver.core.profile import Profile, DateInfo
