@@ -89,10 +89,6 @@ jobs:
           key: ${{ runner.os }}-rust-target-${{ hashFiles('rust_engine/src/**/*.rs', 'rust_engine/Cargo.toml') }}
           restore-keys: ${{ runner.os }}-rust-target-
 
-      # Create venv and expose it to all subsequent steps via $GITHUB_PATH.
-      # This avoids "source .venv/bin/activate" in every run block (fragile
-      # across shells and platforms) and ensures maturin installs into the
-      # correct interpreter.
       - name: Create venv & add to PATH
         run: |
           python -m venv .venv
@@ -192,7 +188,7 @@ jobs:
         with:
           context: .
           push: false
-          load: true   # export image to local Docker daemon so docker run works
+          load: true # export image to local Docker daemon so docker run works
           tags: credweaver:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -210,7 +206,8 @@ jobs:
             -v ${{ github.workspace }}/profiles:/home/credweaver/profiles:ro \
             -v /tmp/credweaver-output:/output \
             credweaver:ci generate \
-              --profile /home/credweaver/profiles/example_target.yaml \
+              --profile /home/credweaver/profiles/ci_smoke.yaml \
+              --preset fast \
               --output /output/test_wordlist.txt \
               --no-stats
           wc -l /tmp/credweaver-output/test_wordlist.txt

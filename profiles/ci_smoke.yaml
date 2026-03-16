@@ -1,0 +1,4 @@
+# Minimal profile for CI smoke tests — generates a small wordlist fast.
+name: "test"
+keywords:
+  - "ci"
